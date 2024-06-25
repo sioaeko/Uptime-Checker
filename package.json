@@ -1,0 +1,24 @@
+{
+    "name": "uptime-monitor",
+    "version": "1.0.0",
+    "description": "A simple uptime monitoring application",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "keywords": [
+        "uptime",
+        "monitor",
+        "nodejs",
+        "express"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "express": "^4.17.1"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.22"
+    }
+}
