@@ -20,9 +20,10 @@ async function checkUrl(url) {
         
         if (sslResponse.data && sslResponse.data.endpoints && sslResponse.data.endpoints.length > 0) {
           const cert = sslResponse.data.endpoints[0].details.cert;
+          const expirationDate = new Date(cert.notAfter * 1000);
           sslInfo = {
-            valid: true,
-            expiresAt: new Date(cert.notAfter * 1000).toISOString()
+            valid: expirationDate > new Date(),
+            expiresAt: expirationDate.toISOString()
           };
         }
       } catch (error) {
