@@ -102,14 +102,26 @@ function displayMonitor(url, data) {
 }
 
 function updateCardContent(card, url, data) {
-    const expirationDate = new Date(data.ssl?.expiresAt);
-    const daysUntilExpiration = Math.ceil((expirationDate - new Date()) / (1000 * 60 * 60 * 24));
-
+    let sslInfo = 'N/A';
     let sslClass = '';
-    if (daysUntilExpiration <= 7) {
-        sslClass = 'danger';
-    } else if (daysUntilExpiration <= 30) {
-        sslClass = 'warning';
+    
+    if (data.ssl && data.ssl.expiresAt) {
+        const expirationDate = new Date(data.ssl.expiresAt);
+        const now = new Date();
+        const diffTime = expirationDate - now;
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
+            sslInfo = '만료됨';
+            sslClass = 'danger';
+        } else {
+            sslInfo = `${daysUntilExpiration}일`;
+            if (daysUntilExpiration <= 7) {
+                sslClass = 'danger';
+            } else if (daysUntilExpiration <= 30) {
+                sslClass = 'warning';
+            }
+        }
     }
 
     card.innerHTML = `
@@ -119,10 +131,13 @@ function updateCardContent(card, url, data) {
         </span>
         <div class="monitor-info">
             <p class="response-time"><i class="fas fa-clock"></i> 응답 시간: ${data.responseTime}ms</p>
-            <p class="ssl-info ${sslClass}"><i class="fas fa-lock"></i> SSL 인증서 만료까지: ${daysUntilExpiration}일</p>
+            <p class="ssl-info ${sslClass}"><i class="fas fa-lock"></i> SSL 인증서 만료까지: ${sslInfo}</p>
             <p class="down-history"><i class="fas fa-history"></i> 최근 다운 기록: ${data.downHistory.length > 0 ? new Date(data.downHistory[data.downHistory.length - 1]).toLocaleString() : '없음'}</p>
         </div>
     `;
+
+
+}
 
     // 삭제 버튼 다시 추가
     const deleteButton = document.createElement('button');
