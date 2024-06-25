@@ -1,16 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
     const urlForm = document.getElementById('urlForm');
     const urlInput = document.getElementById('urlInput');
+    const addButton = document.getElementById('addButton');
     const monitorList = document.getElementById('monitorList');
 
-    urlForm.addEventListener('submit', async function(e) {
-        e.preventDefault(); // 폼의 기본 제출 동작을 막습니다.
+    addButton.addEventListener('click', handleAddMonitor);
+    urlForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        handleAddMonitor();
+    });
+
+    function handleAddMonitor() {
         const url = urlInput.value.trim();
         if (url) {
-            await addMonitor(url);
-            urlInput.value = ''; // 입력 필드를 비웁니다.
+            addMonitor(url);
+            urlInput.value = '';
         }
-    });
+    }
 
     async function addMonitor(url) {
         try {
@@ -53,46 +59,42 @@ document.addEventListener('DOMContentLoaded', function() {
             monitorList.prepend(card);
         }
 
-        // 로딩 메시지 제거
         const loadingMessage = monitorList.querySelector('.loading');
         if (loadingMessage) {
             loadingMessage.remove();
         }
     }
 
-function updateCardContent(card, url, data) {
-    console.log('Updating card content:', url, data);
-    let sslInfo = 'N/A';
-    let sslClass = '';
-    
-    if (data.ssl && data.ssl.expiresAt) {
-        console.log('SSL info available:', data.ssl);
-        const expirationDate = new Date(data.ssl.expiresAt);
-        const now = new Date();
-        const diffTime = expirationDate - now;
-        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    function updateCardContent(card, url, data) {
+        console.log('Updating card content:', url, data);
+        let sslInfo = 'N/A';
+        let sslClass = '';
         
-        if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
-            sslInfo = '만료됨';
-            sslClass = 'danger';
-        } else {
-            sslInfo = `${daysUntilExpiration}일`;
-            if (daysUntilExpiration <= 7) {
+        if (data.ssl && data.ssl.expiresAt) {
+            console.log('SSL info available:', data.ssl);
+            const expirationDate = new Date(data.ssl.expiresAt);
+            const now = new Date();
+            const diffTime = expirationDate - now;
+            const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
+                sslInfo = '만료됨';
                 sslClass = 'danger';
-            } else if (daysUntilExpiration <= 30) {
-                sslClass = 'warning';
+            } else {
+                sslInfo = `${daysUntilExpiration}일`;
+                if (daysUntilExpiration <= 7) {
+                    sslClass = 'danger';
+                } else if (daysUntilExpiration <= 30) {
+                    sslClass = 'warning';
+                }
             }
+        } else if (!url.startsWith('https://')) {
+            sslInfo = '해당 없음';
+        } else {
+            console.log('SSL info not available');
+            sslInfo = '확인 불가';
+            sslClass = 'warning';
         }
-    } else if (!url.startsWith('https://')) {
-        sslInfo = '해당 없음';
-    } else {
-        console.log('SSL info not available');
-        sslInfo = '확인 불가';
-        sslClass = 'warning';
-    }
-
-    // 나머지 코드는 이전과 동일
-}
 
         card.innerHTML = `
             <h2>${url}</h2>
@@ -130,7 +132,6 @@ function updateCardContent(card, url, data) {
         }
     };
 
-    // 주기적으로 상태 업데이트
     setInterval(async () => {
         const cards = document.querySelectorAll('.monitor-card');
         for (let card of cards) {
@@ -143,9 +144,8 @@ function updateCardContent(card, url, data) {
                 console.error('Error updating status:', error);
             }
         }
-    }, 60000); // 1분마다 업데이트
+    }, 60000);
 
-    // 초기 로딩 상태 표시
     if (monitorList.children.length === 0) {
         monitorList.innerHTML = '<div class="loading">모니터링할 URL을 추가해주세요.</div>';
     }
