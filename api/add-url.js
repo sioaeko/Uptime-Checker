@@ -27,16 +27,26 @@ async function checkUrl(url) {
         if (sslResponse.data && sslResponse.data.length > 0) {
           const latestCert = sslResponse.data[0];
           const expirationDate = new Date(latestCert.not_after * 1000);
-          sslInfo = {
-            valid: expirationDate > new Date(),
-            expiresAt: expirationDate.toISOString()
-          };
+
+          if (expirationDate > new Date()) {
+            sslInfo = {
+              valid: true,
+              expiresAt: expirationDate.toISOString()
+            };
+          } else {
+            sslInfo = {
+              valid: false,
+              expiresAt: 'Expired'
+            };
+          }
+
           console.log('SSL info:', JSON.stringify(sslInfo));
         } else {
           console.log('SSL check response does not contain expected data');
         }
       } catch (error) {
         console.error('Error checking SSL:', error.message);
+        console.error('SSL API response:', error.response ? error.response.data : 'No response data');
       }
     } else {
       console.log('URL is not HTTPS, skipping SSL check');
