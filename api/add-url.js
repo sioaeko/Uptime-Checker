@@ -24,29 +24,28 @@ async function checkUrl(url) {
 
         console.log('SSL check response:', JSON.stringify(sslResponse.data));
 
-        if (sslResponse.data && sslResponse.data.length > 0) {
+        if (sslResponse.data && Array.isArray(sslResponse.data) && sslResponse.data.length > 0) {
           const latestCert = sslResponse.data[0];
-          const expirationDate = new Date(latestCert.not_after * 1000);
-
-          if (expirationDate > new Date()) {
+          if (latestCert.not_after) {
+            const expirationDate = new Date(latestCert.not_after * 1000);
             sslInfo = {
-              valid: true,
-              expiresAt: expirationDate.toISOString()
+              valid: expirationDate > new Date(),
+              expiresAt: expirationDate > new Date() ? expirationDate.toISOString() : 'Expired'
             };
+            console.log('SSL info:', JSON.stringify(sslInfo));
           } else {
-            sslInfo = {
-              valid: false,
-              expiresAt: 'Expired'
-            };
+            console.log('No valid expiration date found in SSL response data');
           }
-
-          console.log('SSL info:', JSON.stringify(sslInfo));
         } else {
-          console.log('SSL check response does not contain expected data');
+          console.log('SSL check response does not contain expected data or is not an array');
         }
       } catch (error) {
         console.error('Error checking SSL:', error.message);
-        console.error('SSL API response:', error.response ? error.response.data : 'No response data');
+        if (error.response) {
+          console.error('SSL API response:', JSON.stringify(error.response.data));
+        } else {
+          console.error('No response from SSL API');
+        }
       }
     } else {
       console.log('URL is not HTTPS, skipping SSL check');
