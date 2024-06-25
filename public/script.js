@@ -5,22 +5,71 @@ document.getElementById('urlForm').addEventListener('submit', async function(e) 
     document.getElementById('urlInput').value = '';
 });
 
+// 기존 코드에서 fetch 요청 부분만 수정합니다.
+
 async function addMonitor(url) {
-    try {
-        const response = await fetch('/add-url', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url }),
-        });
-        const data = await response.json();
-        displayMonitor(url, data);
-    } catch (error) {
-        console.error('Error adding monitor:', error);
-        alert('URL 추가 중 오류가 발생했습니다.');
+  try {
+    const response = await fetch('/api/add-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    displayMonitor(url, data);
+  } catch (error) {
+    console.error('Error adding monitor:', error);
+    alert(`URL 추가 중 오류가 발생했습니다: ${error.message}`);
+  }
 }
+
+async function removeMonitor(url) {
+  if (confirm(`정말로 "${url}" 모니터링을 삭제하시겠습니까?`)) {
+    try {
+      const response = await fetch(`/api/remove-url?url=${encodeURIComponent(url)}`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      if (data.success) {
+        document.getElementById(`monitor-${encodeURIComponent(url)}`).remove();
+        if (document.querySelectorAll('.monitor-card').length === 0) {
+          document.getElementById('monitorList').innerHTML = '<div class="loading">모니터링할 URL을 추가해주세요.</div>';
+        }
+      } else {
+        alert('URL 삭제 중 오류가 발생했습니다.');
+      }
+    } catch (error) {
+      console.error('Error removing monitor:', error);
+      alert('URL 삭제 중 오류가 발생했습니다.');
+    }
+  }
+}
+
+// 주기적으로 상태 업데이트
+setInterval(async () => {
+  const cards = document.querySelectorAll('.monitor-card');
+  for (let card of cards) {
+    const url = card.querySelector('h2').textContent;
+    try {
+      const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
+      const data = await response.json();
+      updateCardContent(card, url, data);
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  }
+}, 60000); // 1분마다 업데이트
 
 function displayMonitor(url, data) {
     const monitorList = document.getElementById('monitorList');
