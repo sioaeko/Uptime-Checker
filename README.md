@@ -145,8 +145,8 @@ Uptime-monitor/
 │   ├── index.html
 │   ├── script.js
 │   └── styles.css
-├── serverless.js
-├── vercel.json
+├── server.js
+├── package-lock.json
 ├── package.json
 └── README.md
 ```
