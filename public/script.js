@@ -62,42 +62,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateCardContent(card, url, data) {
-        let sslInfo = 'N/A';
-        let sslClass = '';
+    let sslInfo = 'N/A';
+    let sslClass = '';
+    
+    if (data.ssl && data.ssl.expiresAt) {
+        const expirationDate = new Date(data.ssl.expiresAt);
+        const now = new Date();
+        const diffTime = expirationDate - now;
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (data.ssl && data.ssl.expiresAt) {
-            const expirationDate = new Date(data.ssl.expiresAt);
-            const now = new Date();
-            const diffTime = expirationDate - now;
-            const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
-                sslInfo = '만료됨';
+        if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
+            sslInfo = '만료됨';
+            sslClass = 'danger';
+        } else {
+            sslInfo = `${daysUntilExpiration}일`;
+            if (daysUntilExpiration <= 7) {
                 sslClass = 'danger';
-            } else {
-                sslInfo = `${daysUntilExpiration}일`;
-                if (daysUntilExpiration <= 7) {
-                    sslClass = 'danger';
-                } else if (daysUntilExpiration <= 30) {
-                    sslClass = 'warning';
-                }
+            } else if (daysUntilExpiration <= 30) {
+                sslClass = 'warning';
             }
         }
-
-        card.innerHTML = `
-            <h2>${url}</h2>
-            <span class="status ${data.status === 'up' ? 'up' : 'down'}">
-                ${data.status === 'up' ? '<i class="fas fa-check-circle"></i> 정상' : '<i class="fas fa-exclamation-circle"></i> 다운'}
-            </span>
-            <div class="monitor-info">
-                <p class="response-time"><i class="fas fa-clock"></i> 응답 시간: ${data.responseTime}ms</p>
-                <p class="ssl-info ${sslClass}"><i class="fas fa-lock"></i> SSL 인증서 만료까지: ${sslInfo}</p>
-                <p class="down-history"><i class="fas fa-history"></i> 최근 다운 기록: ${data.downHistory.length > 0 ? new Date(data.downHistory[data.downHistory.length - 1]).toLocaleString() : '없음'}</p>
-            </div>
-            <button class="delete-btn" onclick="removeMonitor('${url}')"><i class="fas fa-trash"></i></button>
-        `;
+    } else if (!url.startsWith('https://')) {
+        sslInfo = '해당 없음';
     }
 
+    card.innerHTML = `
+        <h2>${url}</h2>
+        <span class="status ${data.status === 'up' ? 'up' : 'down'}">
+            ${data.status === 'up' ? '<i class="fas fa-check-circle"></i> 정상' : '<i class="fas fa-exclamation-circle"></i> 다운'}
+        </span>
+        <div class="monitor-info">
+            <p class="response-time"><i class="fas fa-clock"></i> 응답 시간: ${data.responseTime}ms</p>
+            <p class="ssl-info ${sslClass}"><i class="fas fa-lock"></i> SSL 인증서 만료까지: ${sslInfo}</p>
+            <p class="down-history"><i class="fas fa-history"></i> 최근 다운 기록: ${data.downHistory.length > 0 ? new Date(data.downHistory[data.downHistory.length - 1]).toLocaleString() : '없음'}</p>
+        </div>
+        <button class="delete-btn" onclick="removeMonitor('${url}')"><i class="fas fa-trash"></i></button>
+    `;
+}
     // 삭제 함수를 전역 스코프에 정의합니다.
     window.removeMonitor = async function(url) {
         if (confirm(`정말로 "${url}" 모니터링을 삭제하시겠습니까?`)) {
