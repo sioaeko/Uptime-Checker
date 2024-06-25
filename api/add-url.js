@@ -1,22 +1,28 @@
 const axios = require('axios');
 
 async function checkUrl(url) {
+  console.log(`Checking URL: ${url}`);
   try {
     const start = Date.now();
     const response = await axios.get(url, { 
       timeout: 5000,
-      validateStatus: false // 모든 상태 코드를 허용합니다.
+      validateStatus: false
     });
     const responseTime = Date.now() - start;
+
+    console.log(`Response status: ${response.status}, time: ${responseTime}ms`);
 
     let sslInfo = { valid: false, expiresAt: null };
     
     if (url.startsWith('https://')) {
       try {
+        console.log('Checking SSL...');
         const urlObj = new URL(url);
         const sslResponse = await axios.get(`https://ssl-checker.io/api/v1/check/${urlObj.hostname}`, {
           timeout: 10000
         });
+        
+        console.log('SSL check response:', JSON.stringify(sslResponse.data));
         
         if (sslResponse.data && sslResponse.data.certInfo) {
           const expirationDate = new Date(sslResponse.data.certInfo.validTo);
@@ -24,20 +30,29 @@ async function checkUrl(url) {
             valid: expirationDate > new Date(),
             expiresAt: expirationDate.toISOString()
           };
+          console.log('SSL info:', JSON.stringify(sslInfo));
+        } else {
+          console.log('SSL check response does not contain expected data');
         }
       } catch (error) {
-        console.error('Error checking SSL:', error);
+        console.error('Error checking SSL:', error.message);
       }
+    } else {
+      console.log('URL is not HTTPS, skipping SSL check');
     }
 
-    return {
+    const result = {
       status: response.status < 400 ? 'up' : 'down',
       responseTime,
       ssl: sslInfo,
       lastChecked: new Date().toISOString(),
       downHistory: []
     };
+
+    console.log('Final result:', JSON.stringify(result));
+    return result;
   } catch (error) {
+    console.error('Error in checkUrl:', error.message);
     return { 
       status: 'down', 
       error: error.message, 
