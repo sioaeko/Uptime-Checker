@@ -60,34 +60,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function updateCardContent(card, url, data) {
-        console.log('Updating card content:', url, data);
-        let sslInfo = 'N/A';
-        let sslClass = '';
+function updateCardContent(card, url, data) {
+    console.log('Updating card content:', url, data);
+    let sslInfo = 'N/A';
+    let sslClass = '';
+    
+    if (data.ssl && data.ssl.expiresAt) {
+        console.log('SSL info available:', data.ssl);
+        const expirationDate = new Date(data.ssl.expiresAt);
+        const now = new Date();
+        const diffTime = expirationDate - now;
+        const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         
-        if (data.ssl && data.ssl.expiresAt) {
-            console.log('SSL info available:', data.ssl);
-            const expirationDate = new Date(data.ssl.expiresAt);
-            const now = new Date();
-            const diffTime = expirationDate - now;
-            const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
-                sslInfo = '만료됨';
-                sslClass = 'danger';
-            } else {
-                sslInfo = `${daysUntilExpiration}일`;
-                if (daysUntilExpiration <= 7) {
-                    sslClass = 'danger';
-                } else if (daysUntilExpiration <= 30) {
-                    sslClass = 'warning';
-                }
-            }
-        } else if (!url.startsWith('https://')) {
-            sslInfo = '해당 없음';
+        if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
+            sslInfo = '만료됨';
+            sslClass = 'danger';
         } else {
-            console.log('SSL info not available');
+            sslInfo = `${daysUntilExpiration}일`;
+            if (daysUntilExpiration <= 7) {
+                sslClass = 'danger';
+            } else if (daysUntilExpiration <= 30) {
+                sslClass = 'warning';
+            }
         }
+    } else if (!url.startsWith('https://')) {
+        sslInfo = '해당 없음';
+    } else {
+        console.log('SSL info not available');
+        sslInfo = '확인 불가';
+        sslClass = 'warning';
+    }
+
+    // 나머지 코드는 이전과 동일
+}
 
         card.innerHTML = `
             <h2>${url}</h2>
