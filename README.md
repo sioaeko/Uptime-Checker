@@ -4,7 +4,8 @@
 Uptime Checker is a simple tool to monitor the availability and SSL certificate status of specified URLs. This project provides a web interface to add URLs for monitoring and an API to check their status. This version is optimized for serverless deployment on Vercel.
 
 The versions of nodejs that can run on common servers and desktops are here
-https://github.com/sioaeko/Uptime-monitor
+
+[uptime-monitor](https://github.com/sioaeko/Uptime-monitor)
 
 ## Features
 
