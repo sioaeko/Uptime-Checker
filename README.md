@@ -1,5 +1,5 @@
 
-# Uptime Checker
+# Uptime Checker Serverless 
 
 ![스크린샷, 2024-06-25 23-13-54](https://github.com/sioaeko/Uptime-monitor/assets/101755125/3a80f563-ad68-4350-a1f5-dbe353f58088)
 
