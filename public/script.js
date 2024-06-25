@@ -61,11 +61,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function updateCardContent(card, url, data) {
+function updateCardContent(card, url, data) {
+    console.log('Updating card content:', url, data);
     let sslInfo = 'N/A';
     let sslClass = '';
     
     if (data.ssl && data.ssl.expiresAt) {
+        console.log('SSL info available:', data.ssl);
         const expirationDate = new Date(data.ssl.expiresAt);
         const now = new Date();
         const diffTime = expirationDate - now;
@@ -84,7 +86,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     } else if (!url.startsWith('https://')) {
         sslInfo = '해당 없음';
+    } else {
+        console.log('SSL info not available');
     }
+
+    // 나머지 코드는 이전과 동일
+}
 
     card.innerHTML = `
         <h2>${url}</h2>
