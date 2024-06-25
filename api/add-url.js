@@ -1,6 +1,53 @@
 const axios = require('axios');
 const https = require('https');
 
+async function checkUrl(url) {
+  try {
+    const start = Date.now();
+    const response = await axios.get(url, { 
+      timeout: 5000,
+      validateStatus: false // 모든 상태 코드를 허용합니다.
+    });
+    const responseTime = Date.now() - start;
+
+    let sslInfo = { valid: false, expiresAt: null };
+    
+    if (url.startsWith('https://')) {
+      try {
+        const sslResponse = await axios.get(`https://api.ssllabs.com/api/v3/analyze?host=${encodeURIComponent(url)}&all=done`, {
+          timeout: 10000
+        });
+        
+        if (sslResponse.data && sslResponse.data.endpoints && sslResponse.data.endpoints.length > 0) {
+          const cert = sslResponse.data.endpoints[0].details.cert;
+          sslInfo = {
+            valid: true,
+            expiresAt: new Date(cert.notAfter * 1000).toISOString()
+          };
+        }
+      } catch (error) {
+        console.error('Error checking SSL:', error);
+      }
+    }
+
+    return {
+      status: response.status < 400 ? 'up' : 'down',
+      responseTime,
+      ssl: sslInfo,
+      lastChecked: new Date().toISOString(),
+      downHistory: []
+    };
+  } catch (error) {
+    return { 
+      status: 'down', 
+      error: error.message, 
+      lastChecked: new Date().toISOString(), 
+      downHistory: [new Date().toISOString()],
+      ssl: { valid: false, expiresAt: null }
+    };
+  }
+}
+
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
     const { url } = req.body;
@@ -20,52 +67,3 @@ module.exports = async (req, res) => {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 };
-
-async function checkUrl(url) {
-  try {
-    const start = Date.now();
-    const response = await axios.get(url, { 
-      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-      timeout: 5000
-    });
-    const responseTime = Date.now() - start;
-
-    let sslInfo = { valid: false, expiresAt: null };
-    
-    if (url.startsWith('https://')) {
-      try {
-        const urlObj = new URL(url);
-        sslInfo = await new Promise((resolve) => {
-          const req = https.request({
-            host: urlObj.hostname,
-            port: 443,
-            method: 'GET'
-          }, (res) => {
-            const cert = res.socket.getPeerCertificate();
-            resolve({
-              valid: res.socket.authorized,
-              expiresAt: cert.valid_to
-            });
-          });
-          req.on('error', (e) => {
-            console.error('Error checking SSL:', e);
-            resolve({ valid: false, expiresAt: null });
-          });
-          req.end();
-        });
-      } catch (error) {
-        console.error('Error checking SSL:', error);
-      }
-    }
-
-    return {
-      status: 'up',
-      responseTime,
-      ssl: sslInfo,
-      lastChecked: new Date(),
-      downHistory: []
-    };
-  } catch (error) {
-    return { status: 'down', error: error.message, lastChecked: new Date(), downHistory: [new Date()] };
-  }
-}
