@@ -1,4 +1,5 @@
 const axios = require('axios');
+const https = require('https');
 
 async function checkUrl(url) {
   console.log(`Checking URL: ${url}`);
@@ -6,46 +7,42 @@ async function checkUrl(url) {
     const start = Date.now();
     const response = await axios.get(url, { 
       timeout: 5000,
-      validateStatus: false
+      validateStatus: false,
+      httpsAgent: new https.Agent({  
+        rejectUnauthorized: false
+      })
     });
     const responseTime = Date.now() - start;
 
     console.log(`Response status: ${response.status}, time: ${responseTime}ms`);
 
-    let sslInfo = { valid: false, expiresAt: 'N/A' };
-
+    let sslInfo = { valid: false, expiresAt: null };
+    
     if (url.startsWith('https://')) {
       try {
         console.log('Checking SSL...');
         const urlObj = new URL(url);
-        const sslResponse = await axios.get(`https://api.sslmate.com/v1/certspotter/certs?domain=${urlObj.hostname}`, {
-          timeout: 10000
+        const sslResponse = await axios.get(`https://${urlObj.hostname}`, {
+          httpsAgent: new https.Agent({  
+            rejectUnauthorized: false
+          })
         });
+        
+        const cert = sslResponse.request.res.socket.getPeerCertificate();
+        console.log('Certificate info:', cert);
 
-        console.log('SSL check response:', JSON.stringify(sslResponse.data));
-
-        if (sslResponse.data && Array.isArray(sslResponse.data) && sslResponse.data.length > 0) {
-          const latestCert = sslResponse.data[0];
-          if (latestCert.not_after) {
-            const expirationDate = new Date(latestCert.not_after * 1000);
-            sslInfo = {
-              valid: expirationDate > new Date(),
-              expiresAt: expirationDate > new Date() ? expirationDate.toISOString() : 'Expired'
-            };
-            console.log('SSL info:', JSON.stringify(sslInfo));
-          } else {
-            console.log('No valid expiration date found in SSL response data');
-          }
+        if (cert && cert.valid_to) {
+          const expirationDate = new Date(cert.valid_to);
+          sslInfo = {
+            valid: expirationDate > new Date(),
+            expiresAt: expirationDate.toISOString()
+          };
+          console.log('SSL info:', JSON.stringify(sslInfo));
         } else {
-          console.log('SSL check response does not contain expected data or is not an array');
+          console.log('Unable to get SSL certificate information');
         }
       } catch (error) {
         console.error('Error checking SSL:', error.message);
-        if (error.response) {
-          console.error('SSL API response:', JSON.stringify(error.response.data));
-        } else {
-          console.error('No response from SSL API');
-        }
       }
     } else {
       console.log('URL is not HTTPS, skipping SSL check');
@@ -68,7 +65,7 @@ async function checkUrl(url) {
       error: error.message, 
       lastChecked: new Date().toISOString(), 
       downHistory: [new Date().toISOString()],
-      ssl: { valid: false, expiresAt: 'N/A' }
+      ssl: { valid: false, expiresAt: null }
     };
   }
 }
