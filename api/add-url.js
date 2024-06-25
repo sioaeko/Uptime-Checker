@@ -1,5 +1,4 @@
 const axios = require('axios');
-const https = require('https');
 
 async function checkUrl(url) {
   try {
@@ -14,13 +13,13 @@ async function checkUrl(url) {
     
     if (url.startsWith('https://')) {
       try {
-        const sslResponse = await axios.get(`https://api.ssllabs.com/api/v3/analyze?host=${encodeURIComponent(url)}&all=done`, {
+        const urlObj = new URL(url);
+        const sslResponse = await axios.get(`https://ssl-checker.io/api/v1/check/${urlObj.hostname}`, {
           timeout: 10000
         });
         
-        if (sslResponse.data && sslResponse.data.endpoints && sslResponse.data.endpoints.length > 0) {
-          const cert = sslResponse.data.endpoints[0].details.cert;
-          const expirationDate = new Date(cert.notAfter * 1000);
+        if (sslResponse.data && sslResponse.data.certInfo) {
+          const expirationDate = new Date(sslResponse.data.certInfo.validTo);
           sslInfo = {
             valid: expirationDate > new Date(),
             expiresAt: expirationDate.toISOString()
