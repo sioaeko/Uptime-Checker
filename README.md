@@ -13,9 +13,9 @@ The versions of nodejs that can run on common servers and desktops are here
 
 ## Features
 
-- **URL Monitoring**: Add URLs to monitor their availability.
-- **SSL Certificate Check**: Check the SSL certificate status, including validity and expiration date.
-- **Response Time Measurement**: Measure and display the response time of the monitored URLs.
+- 🌐 URL Availability Monitoring
+- 🔒 SSL Certificate Status Checking
+- ⏱️ Response Time Measurement
 
 ## Setup and Installation
 
@@ -30,7 +30,7 @@ The versions of nodejs that can run on common servers and desktops are here
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/Uptime-Checker.git
+   git clone https://github.com/sioaeko/Uptime-monitor.git
    cd Uptime-Checker
    ```
 
@@ -136,7 +136,7 @@ Remove a URL from monitoring.
 ## Project Structure
 
 ```
-Uptime-Checker/
+Uptime-monitor/
 ├── api/
 │   ├── add-url.js
 │   ├── check-status.js
