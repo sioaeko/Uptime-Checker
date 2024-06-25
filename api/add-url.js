@@ -14,33 +14,33 @@ async function checkUrl(url) {
 
     let sslInfo = { valid: false, expiresAt: null };
     
-    if (url.startsWith('https://')) {
-      try {
-        console.log('Checking SSL...');
-        const urlObj = new URL(url);
-        const sslResponse = await axios.get(`https://ssl-checker.io/api/v1/check/${urlObj.hostname}`, {
-          timeout: 10000
-        });
-        
-        console.log('SSL check response:', JSON.stringify(sslResponse.data));
-        
-        if (sslResponse.data && sslResponse.data.certInfo) {
-          const expirationDate = new Date(sslResponse.data.certInfo.validTo);
-          sslInfo = {
-            valid: expirationDate > new Date(),
-            expiresAt: expirationDate.toISOString()
-          };
-          console.log('SSL info:', JSON.stringify(sslInfo));
-        } else {
-          console.log('SSL check response does not contain expected data');
-        }
-      } catch (error) {
-        console.error('Error checking SSL:', error.message);
-      }
+if (url.startsWith('https://')) {
+  try {
+    console.log('Checking SSL...');
+    const urlObj = new URL(url);
+    const sslResponse = await axios.get(`https://api.sslmate.com/v1/certspotter/certs?domain=${urlObj.hostname}`, {
+      timeout: 10000
+    });
+    
+    console.log('SSL check response:', JSON.stringify(sslResponse.data));
+    
+    if (sslResponse.data && sslResponse.data.length > 0) {
+      const latestCert = sslResponse.data[0];
+      const expirationDate = new Date(latestCert.not_after * 1000);
+      sslInfo = {
+        valid: expirationDate > new Date(),
+        expiresAt: expirationDate.toISOString()
+      };
+      console.log('SSL info:', JSON.stringify(sslInfo));
     } else {
-      console.log('URL is not HTTPS, skipping SSL check');
+      console.log('SSL check response does not contain expected data');
     }
-
+  } catch (error) {
+    console.error('Error checking SSL:', error.message);
+  }
+} else {
+  console.log('URL is not HTTPS, skipping SSL check');
+}
     const result = {
       status: response.status < 400 ? 'up' : 'down',
       responseTime,
