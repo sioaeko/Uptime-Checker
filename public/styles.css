@@ -141,3 +141,61 @@ button:hover {
 .delete-btn:hover {
     color: #c0392b;
 }
+
+body {
+    font-family: Arial, sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.dark-mode {
+    background-color: #333;
+    color: #fff;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #f0f0f0;
+}
+
+.dark-mode header {
+    background-color: #222;
+}
+
+main {
+    padding: 1rem;
+}
+
+#dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.monitor-card {
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.dark-mode .monitor-card {
+    background-color: #444;
+}
+
+.monitor-card:hover {
+    transform: translateY(-5px);
+}
+
+#statistics {
+    margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+    #dashboard {
+        grid-template-columns: 1fr;
+    }
+}
