@@ -7,10 +7,6 @@ Uptime Monitor is a simple tool to monitor the availability and SSL certificate 
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sioaeko/Uptime-monitor-vercel)
 
-The versions of nodejs that can run on common servers and desktops are here
-
-[uptime-monitor](https://github.com/sioaeko/Uptime-monitor)
-
 ## Features
 
 - 🌐 URL Availability Monitoring
