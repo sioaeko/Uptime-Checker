@@ -1,10 +1,9 @@
 
-# Uptime Checker Serverless 
+# Uptime Monitor
 
 ![Fotoram io(1)](https://github.com/user-attachments/assets/e5219d1f-e298-41dd-bb8c-8c29cd4ae115)
 
-
-Uptime Checker is a simple tool to monitor the availability and SSL certificate status of specified URLs. This project provides a web interface to add URLs for monitoring and an API to check their status. This version is optimized for serverless deployment on Vercel.
+Uptime Monitor is a simple tool to monitor the availability and SSL certificate status of specified URLs. This project provides a web interface to add URLs for monitoring and an API to check their status. This version is optimized for serverless deployment on Vercel.
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sioaeko/Uptime-monitor-vercel)
 
