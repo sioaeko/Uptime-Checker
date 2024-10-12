@@ -58,10 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Data:', data);
             
-            const newMonitor = { ...data, url, interval, responseTimes: [data.responseTime] };
-            await kv.set(`monitor:${url}`, JSON.stringify(newMonitor));
-            
-            monitors.push(newMonitor);
+            monitors.push(data);
             startUpdateInterval(url, interval);
             updateDisplay();
         } catch (error) {
@@ -75,22 +72,11 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
             const data = await response.json();
-            const monitorKey = `monitor:${url}`;
-            const monitorData = await kv.get(monitorKey);
-            if (monitorData) {
-                const updatedMonitor = JSON.parse(monitorData);
-                updatedMonitor.responseTimes.push(data.responseTime);
-                if (updatedMonitor.responseTimes.length > 10) {
-                    updatedMonitor.responseTimes.shift();
-                }
-                Object.assign(updatedMonitor, data);
-                await kv.set(monitorKey, JSON.stringify(updatedMonitor));
-                
-                const monitorIndex = monitors.findIndex(m => m.url === url);
-                if (monitorIndex !== -1) {
-                    monitors[monitorIndex] = updatedMonitor;
-                    updateDisplay();
-                }
+            
+            const monitorIndex = monitors.findIndex(m => m.url === url);
+            if (monitorIndex !== -1) {
+                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
+                updateDisplay();
             }
         } catch (error) {
             console.error(`Error updating status for ${url}:`, error);
@@ -107,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayMonitor(monitor) {
         console.log('Displaying monitor:', monitor);
         const monitorItem = document.createElement('div');
-        monitorItem.className = 'px-6 py-4 flex justify-between items-center';
+        monitorItem.className = 'monitor-card px-6 py-4 flex justify-between items-center';
         monitorItem.innerHTML = `
             <div>
                 <h3 class="text-lg font-semibold">${monitor.url}</h3>
@@ -115,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p class="text-sm text-gray-500">체크 주기: ${monitor.interval / 1000}초</p>
             </div>
             <div class="flex items-center">
-                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${monitor.status === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                <span class="status-badge ${monitor.status === 'up' ? 'up' : 'down'}">
                     ${monitor.status === 'up' ? '정상' : '다운'}
                 </span>
                 <button class="ml-4 text-indigo-600 hover:text-indigo-900" onclick="showDetails('${monitor.url}')">
@@ -139,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 console.log('Remove response:', data);
                 if (data.success) {
-                    await kv.del(`monitor:${url}`);
                     monitors = monitors.filter(m => m.url !== url);
                     if (updateIntervals[url]) {
                         clearInterval(updateIntervals[url]);
@@ -264,10 +249,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadInitialMonitors() {
         try {
-            const keys = await kv.keys('monitor:*');
-            const monitorPromises = keys.map(key => kv.get(key));
-            const monitorData = await Promise.all(monitorPromises);
-            monitors = monitorData.map(data => JSON.parse(data));
+            const response = await fetch('/api/get-monitors');
+            const data = await response.json();
+            monitors = data;
             monitors.forEach(monitor => {
                 startUpdateInterval(monitor.url, monitor.interval);
             });
