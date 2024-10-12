@@ -1,5 +1,3 @@
-import { kv } from '@vercel/kv';
-
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded and parsed');
 
@@ -72,6 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`Checking status for ${url}`);
         try {
             const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             const monitorIndex = monitors.findIndex(m => m.url === url);
             if (monitorIndex !== -1) {
