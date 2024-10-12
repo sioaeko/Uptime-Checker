@@ -1,152 +1,79 @@
 document.addEventListener('DOMContentLoaded', function() {
     const urlForm = document.getElementById('urlForm');
     const urlInput = document.getElementById('urlInput');
-    const addButton = document.getElementById('addButton');
+    const checkInterval = document.getElementById('checkInterval');
     const monitorList = document.getElementById('monitorList');
+    const statusFilter = document.getElementById('statusFilter');
+    const sortBy = document.getElementById('sortBy');
+    const detailModal = document.getElementById('detailModal');
+    const closeModal = document.getElementById('closeModal');
+    const totalMonitors = document.getElementById('totalMonitors');
+    const upMonitors = document.getElementById('upMonitors');
+    const downMonitors = document.getElementById('downMonitors');
+    const avgResponseTime = document.getElementById('avgResponseTime');
 
-    addButton.addEventListener('click', handleAddMonitor);
-    urlForm.addEventListener('submit', function(e) {
+    let monitors = [];
+    let chart;
+
+    urlForm.addEventListener('submit', handleAddMonitor);
+    statusFilter.addEventListener('change', updateDisplay);
+    sortBy.addEventListener('change', updateDisplay);
+    closeModal.addEventListener('click', () => detailModal.classList.add('hidden'));
+
+    async function handleAddMonitor(e) {
         e.preventDefault();
-        handleAddMonitor();
-    });
-
-    function handleAddMonitor() {
         const url = urlInput.value.trim();
+        const interval = parseInt(checkInterval.value);
         if (url) {
-            addMonitor(url);
+            await addMonitor(url, interval);
             urlInput.value = '';
+            updateDisplay();
         }
     }
 
-    async function addMonitor(url) {
+    async function addMonitor(url, interval) {
         try {
             const response = await fetch('/api/add-url', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, interval }),
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             
             const data = await response.json();
+            if (data.error) throw new Error(data.error);
             
-            if (data.error) {
-                throw new Error(data.error);
-            }
-            
-            displayMonitor(url, data);
+            monitors.push({ ...data, url, interval });
+            updateDisplay();
         } catch (error) {
             console.error('Error adding monitor:', error);
             alert(`URL 추가 중 오류가 발생했습니다: ${error.message}`);
         }
     }
 
-    function displayMonitor(url, data) {
-        const existingCard = document.getElementById(`monitor-${encodeURIComponent(url)}`);
-        
-        if (existingCard) {
-            updateCardContent(existingCard, url, data);
-        } else {
-            const card = document.createElement('div');
-            card.className = 'monitor-card';
-            card.id = `monitor-${encodeURIComponent(url)}`;
-            
-            updateCardContent(card, url, data);
-            monitorList.prepend(card);
-        }
-
-        const loadingMessage = monitorList.querySelector('.loading');
-        if (loadingMessage) {
-            loadingMessage.remove();
-        }
-    }
-
-    function updateCardContent(card, url, data) {
-        console.log('Updating card content:', url, data);
-        let sslInfo = 'N/A';
-        let sslClass = '';
-        
-        if (data.ssl && data.ssl.expiresAt) {
-            console.log('SSL info available:', data.ssl);
-            const expirationDate = new Date(data.ssl.expiresAt);
-            const now = new Date();
-            const diffTime = expirationDate - now;
-            const daysUntilExpiration = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
-            if (isNaN(daysUntilExpiration) || daysUntilExpiration < 0) {
-                sslInfo = '만료됨';
-                sslClass = 'danger';
-            } else {
-                sslInfo = `${daysUntilExpiration}일`;
-                if (daysUntilExpiration <= 7) {
-                    sslClass = 'danger';
-                } else if (daysUntilExpiration <= 30) {
-                    sslClass = 'warning';
-                }
-            }
-        } else if (!url.startsWith('https://')) {
-            sslInfo = '해당 없음';
-        } else {
-            console.log('SSL info not available');
-            sslInfo = '확인 불가';
-            sslClass = 'warning';
-        }
-
-        card.innerHTML = `
-            <h2>${url}</h2>
-            <span class="status ${data.status === 'up' ? 'up' : 'down'}">
-                ${data.status === 'up' ? '<i class="fas fa-check-circle"></i> 정상' : '<i class="fas fa-exclamation-circle"></i> 다운'}
-            </span>
-            <div class="monitor-info">
-                <p class="response-time"><i class="fas fa-clock"></i> 응답 시간: ${data.responseTime}ms</p>
-                <p class="ssl-info ${sslClass}"><i class="fas fa-lock"></i> SSL 인증서 만료까지: ${sslInfo}</p>
-                <p class="down-history"><i class="fas fa-history"></i> 최근 다운 기록: ${data.downHistory.length > 0 ? new Date(data.downHistory[data.downHistory.length - 1]).toLocaleString() : '없음'}</p>
+    function displayMonitor(monitor) {
+        const monitorItem = document.createElement('div');
+        monitorItem.className = 'monitor-card px-6 py-4 flex justify-between items-center';
+        monitorItem.innerHTML = `
+            <div>
+                <h3 class="text-lg font-semibold">${monitor.url}</h3>
+                <p class="text-sm text-gray-500">응답 시간: ${monitor.responseTime}ms</p>
             </div>
-            <button class="delete-btn" onclick="removeMonitor('${url}')"><i class="fas fa-trash"></i></button>
+            <div class="flex items-center">
+                <span class="status-badge ${monitor.status === 'up' ? 'up' : 'down'}">
+                    ${monitor.status === 'up' ? '정상' : '다운'}
+                </span>
+                <button class="ml-4 text-indigo-600 hover:text-indigo-900" onclick="showDetails('${monitor.url}')">
+                    상세 정보
+                </button>
+                <button class="ml-4 text-red-600 hover:text-red-900" onclick="removeMonitor('${monitor.url}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         `;
+        monitorList.appendChild(monitorItem);
     }
 
-    window.removeMonitor = async function(url) {
-        if (confirm(`정말로 "${url}" 모니터링을 삭제하시겠습니까?`)) {
-            try {
-                const response = await fetch(`/api/remove-url?url=${encodeURIComponent(url)}`, {
-                    method: 'DELETE'
-                });
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById(`monitor-${encodeURIComponent(url)}`).remove();
-                    if (monitorList.querySelectorAll('.monitor-card').length === 0) {
-                        monitorList.innerHTML = '<div class="loading">모니터링할 URL을 추가해주세요.</div>';
-                    }
-                } else {
-                    alert('URL 삭제 중 오류가 발생했습니다.');
-                }
-            } catch (error) {
-                console.error('Error removing monitor:', error);
-                alert('URL 삭제 중 오류가 발생했습니다.');
-            }
-        }
-    };
-
-    setInterval(async () => {
-        const cards = document.querySelectorAll('.monitor-card');
-        for (let card of cards) {
-            const url = card.querySelector('h2').textContent;
-            try {
-                const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
-                const data = await response.json();
-                updateCardContent(card, url, data);
-            } catch (error) {
-                console.error('Error updating status:', error);
-            }
-        }
-    }, 60000);
-
-    if (monitorList.children.length === 0) {
-        monitorList.innerHTML = '<div class="loading">모니터링할 URL을 추가해주세요.</div>';
-    }
-});
+    async function removeMonitor(url) {
+        if (confirm(`정말로 "${url}" 모니터링을 삭제하시
