@@ -1,39 +1,41 @@
-/* 추가적인 커스텀 스타일 */
-.monitor-card {
-    transition: all 0.3s ease;
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
 }
 
-.monitor-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+#dashboard {
+    max-width: 800px;
+    margin: auto;
+    background-color: white;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.status-badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
+form {
+    display: flex;
+    margin-bottom: 20px;
 }
 
-.status-badge.up {
-    background-color: #DEF7EC;
-    color: #03543F;
+input {
+    flex: 1;
+    padding: 8px;
+    margin-right: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
 }
 
-.status-badge.down {
-    background-color: #FDE2E2;
-    color: #9B1C1C;
+button {
+    padding: 8px 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-.chart-container {
-    position: relative;
-    height: 300px;
-}
-
-@media (max-width: 640px) {
-    .chart-container {
-        height: 200px;
-    }
+button:hover {
+    background-color: #0056b3;
 }
