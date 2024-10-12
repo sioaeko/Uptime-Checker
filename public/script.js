@@ -17,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Elements retrieved:', { urlForm, urlInput, checkInterval, monitorList, statusFilter, sortBy, detailModal, closeModal, totalMonitors, upMonitors, downMonitors, avgResponseTime });
 
     let monitors = [];
+    let updateIntervals = {};
+    let responseTimeChart;
 
     urlForm.addEventListener('submit', handleAddMonitor);
     statusFilter.addEventListener('change', updateDisplay);
@@ -56,12 +58,39 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Data:', data);
             
-            monitors.push({ ...data, url, interval });
+            monitors.push({ ...data, url, interval, responseTimes: [data.responseTime] });
+            startUpdateInterval(url, interval);
             updateDisplay();
         } catch (error) {
             console.error('Error adding monitor:', error);
             alert(`URL 추가 중 오류가 발생했습니다: ${error.message}`);
         }
+    }
+
+    async function updateMonitorStatus(url) {
+        console.log(`Checking status for ${url}`);
+        try {
+            const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
+            const monitorIndex = monitors.findIndex(m => m.url === url);
+            if (monitorIndex !== -1) {
+                monitors[monitorIndex].responseTimes.push(data.responseTime);
+                if (monitors[monitorIndex].responseTimes.length > 10) {
+                    monitors[monitorIndex].responseTimes.shift();
+                }
+                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
+                updateDisplay();
+            }
+        } catch (error) {
+            console.error(`Error updating status for ${url}:`, error);
+        }
+    }
+
+    function startUpdateInterval(url, interval) {
+        if (updateIntervals[url]) {
+            clearInterval(updateIntervals[url]);
+        }
+        updateIntervals[url] = setInterval(() => updateMonitorStatus(url), interval);
     }
 
     function displayMonitor(monitor) {
@@ -72,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div>
                 <h3 class="text-lg font-semibold">${monitor.url}</h3>
                 <p class="text-sm text-gray-500">응답 시간: ${monitor.responseTime}ms</p>
+                <p class="text-sm text-gray-500">체크 주기: ${monitor.interval / 1000}초</p>
             </div>
             <div class="flex items-center">
                 <span class="status-badge ${monitor.status === 'up' ? 'up' : 'down'}">
@@ -99,6 +129,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Remove response:', data);
                 if (data.success) {
                     monitors = monitors.filter(m => m.url !== url);
+                    if (updateIntervals[url]) {
+                        clearInterval(updateIntervals[url]);
+                        delete updateIntervals[url];
+                    }
                     updateDisplay();
                 } else {
                     throw new Error(data.message || 'URL 삭제 실패');
@@ -119,6 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>URL:</strong> ${monitor.url}</p>
                 <p><strong>상태:</strong> ${monitor.status === 'up' ? '정상' : '다운'}</p>
                 <p><strong>응답 시간:</strong> ${monitor.responseTime}ms</p>
+                <p><strong>체크 주기:</strong> ${monitor.interval / 1000}초</p>
                 <p><strong>마지막 체크:</strong> ${new Date(monitor.lastChecked).toLocaleString()}</p>
                 <p><strong>SSL 정보:</strong> ${monitor.ssl.valid ? '유효' : '무효'} (만료: ${new Date(monitor.ssl.expiresAt).toLocaleString()})</p>
             `;
@@ -165,30 +200,72 @@ document.addEventListener('DOMContentLoaded', function() {
         totalMonitors.textContent = monitors.length;
         upMonitors.textContent = monitors.filter(m => m.status === 'up').length;
         downMonitors.textContent = monitors.filter(m => m.status === 'down').length;
-        const avgTime = monitors.reduce((sum, m) => sum + m.responseTime, 0) / monitors.length;
+        const avgTime = monitors.reduce((sum, m) => sum + m.responseTime, 0) / monitors.length || 0;
         avgResponseTime.textContent = avgTime.toFixed(2) + ' ms';
     }
 
     function updateChart() {
         console.log('Updating chart');
-        // 차트 업데이트 로직을 여기에 구현하세요
+        const ctx = document.getElementById('responseTimeChart').getContext('2d');
+        
+        const labels = monitors.map(m => m.url);
+        const data = monitors.map(m => m.responseTime);
+        
+        if (responseTimeChart) {
+            responseTimeChart.data.labels = labels;
+            responseTimeChart.data.datasets[0].data = data;
+            responseTimeChart.update();
+        } else {
+            responseTimeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '응답 시간 (ms)',
+                        data: data,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '응답 시간 (ms)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'URL'
+                            }
+                        }
+                    }
+                }
+            });
+        }
     }
 
-    // 주기적으로 상태 업데이트
-    setInterval(async () => {
-        console.log('Periodic status update');
-        for (let monitor of monitors) {
-            try {
-                const response = await fetch(`/api/check-status?url=${encodeURIComponent(monitor.url)}`);
-                const data = await response.json();
-                Object.assign(monitor, data);
-            } catch (error) {
-                console.error('Error updating status:', error);
-            }
+    async function loadInitialMonitors() {
+        try {
+            const response = await fetch('/api/get-monitors');
+            const data = await response.json();
+            monitors = data.map(monitor => ({
+                ...monitor,
+                responseTimes: [monitor.responseTime]
+            }));
+            monitors.forEach(monitor => {
+                startUpdateInterval(monitor.url, monitor.interval);
+            });
+            updateDisplay();
+        } catch (error) {
+            console.error('Error loading initial monitors:', error);
         }
-        updateDisplay();
-    }, 60000);
+    }
 
-    // 초기 디스플레이 업데이트
-    updateDisplay();
+    loadInitialMonitors();
 });
