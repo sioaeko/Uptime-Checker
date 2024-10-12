@@ -3,15 +3,30 @@ const path = require('path');
 const axios = require('axios');
 const https = require('https');
 const schedule = require('node-schedule');
+const WebSocket = require('ws');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
+// WebSocket 서버 설정
+const server = app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
+const wss = new WebSocket.Server({ server });
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
-// 사이트 상태를 저장할 객체
 const siteStatus = {};
+
+// 모든 클라이언트에게 상태 업데이트 브로드캐스트
+function broadcastStatusUpdate(url, status, responseTime) {
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ url, status, responseTime }));
+        }
+    });
+}
 
 // URL 체크 함수
 async function checkUrl(url) {
@@ -23,35 +38,19 @@ async function checkUrl(url) {
         });
         const responseTime = Date.now() - start;
 
-        // SSL 인증서 정보 확인
-        const urlObj = new URL(url);
-        const sslInfo = await new Promise((resolve) => {
-            const req = https.request({
-                host: urlObj.hostname,
-                port: 443,
-                method: 'GET'
-            }, (res) => {
-                const cert = res.socket.getPeerCertificate();
-                resolve({
-                    valid: res.socket.authorized,
-                    expiresAt: cert.valid_to
-                });
-            });
-            req.end();
-        });
+        const status = response.status < 400 ? 'up' : 'down';
 
         return {
-            status: 'up',
-            responseTime,
-            ssl: sslInfo
+            status,
+            responseTime
         };
     } catch (error) {
-        return { status: 'down', error: error.message };
+        return { status: 'down', error: error.message, responseTime: 0 };
     }
 }
 
 // URL 추가 및 체크 라우트
-app.post('/add-url', async (req, res) => {
+app.post('/api/add-url', async (req, res) => {
     const { url } = req.body;
     if (!url) {
         return res.status(400).json({ error: 'URL is required' });
@@ -65,10 +64,10 @@ app.post('/add-url', async (req, res) => {
     };
 
     // 주기적 체크 스케줄 설정
-    schedule.scheduleJob(`*/5 * * * *`, async () => {
+    schedule.scheduleJob(`*/1 * * * * *`, async () => {
         const newResult = await checkUrl(url);
-        if (newResult.status === 'down' && siteStatus[url].status === 'up') {
-            siteStatus[url].downHistory.push(new Date());
+        if (newResult.status !== siteStatus[url].status) {
+            broadcastStatusUpdate(url, newResult.status, newResult.responseTime);
         }
         siteStatus[url] = { ...siteStatus[url], ...newResult, lastChecked: new Date() };
     });
@@ -77,26 +76,11 @@ app.post('/add-url', async (req, res) => {
 });
 
 // 현재 상태 확인 라우트
-app.get('/check-status/:url', (req, res) => {
-    const url = decodeURIComponent(req.params.url);
+app.get('/api/check-status', (req, res) => {
+    const { url } = req.query;
     if (siteStatus[url]) {
         res.json(siteStatus[url]);
     } else {
         res.status(404).json({ error: 'URL not found' });
     }
-});
-
-// URL 삭제 라우트
-app.delete('/remove-url/:url', (req, res) => {
-    const url = decodeURIComponent(req.params.url);
-    if (siteStatus[url]) {
-        delete siteStatus[url];
-        res.json({ success: true, message: 'URL removed successfully' });
-    } else {
-        res.status(404).json({ success: false, message: 'URL not found' });
-    }
-});
-
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
 });
