@@ -1,84 +1,127 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Monitor</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <title>Uptimely</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">URL Monitor</h1>
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Uptimely | Check Your Site Uptime! </h1>
+        </header>
         
-        <form id="urlForm" class="mb-8">
-            <input type="url" id="urlInput" placeholder="Enter URL to monitor" required class="px-4 py-2 border rounded mr-2">
-            <select id="checkInterval" class="px-4 py-2 border rounded mr-2">
-                <option value="60000">Every 1 minute</option>
-                <option value="300000">Every 5 minutes</option>
-                <option value="900000">Every 15 minutes</option>
-                <option value="3600000">Every 1 hour</option>
-            </select>
-            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Add URL</button>
-        </form>
-
-        <div class="mb-4 flex justify-between items-center">
-            <div>
-                <label for="statusFilter" class="mr-2">Filter by status:</label>
-                <select id="statusFilter" class="px-2 py-1 border rounded">
-                    <option value="all">All</option>
-                    <option value="up">Up</option>
-                    <option value="down">Down</option>
-                </select>
-            </div>
-            <div>
-                <label for="sortBy" class="mr-2">Sort by:</label>
-                <select id="sortBy" class="px-2 py-1 border rounded">
-                    <option value="status">Status</option>
-                    <option value="responseTime">Response Time</option>
-                    <option value="sslExpiry">SSL Expiry</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="monitorList" class="space-y-4"></div>
-
-        <div class="mt-8">
-            <h2 class="text-2xl font-bold mb-4">Statistics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="bg-white p-4 rounded shadow">
-                    <h3 class="font-semibold">Total Monitors</h3>
-                    <p id="totalMonitors" class="text-2xl font-bold">0</p>
+        <main class="grid grid-cols-12 gap-6">
+            <!-- 사이드바 -->
+            <aside class="col-span-12 lg:col-span-3">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold mb-4">모니터 추가</h2>
+                    <form id="urlForm" class="space-y-4">
+                        <div>
+                            <label for="urlInput" class="block text-sm font-medium text-gray-700">URL</label>
+                            <input type="url" id="urlInput" name="url" required
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="checkInterval" class="block text-sm font-medium text-gray-700">체크 주기</label>
+                            <select id="checkInterval" name="interval"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="30000">30초</option>
+                                <option value="60000">1분</option>
+                                <option value="300000">5분</option>
+                                <option value="600000">10분</option>
+                                <option value="1800000">30분</option>
+                                <option value="3600000">1시간</option>
+                            </select>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            모니터 추가
+                        </button>
+                    </form>
                 </div>
-                <div class="bg-white p-4 rounded shadow">
-                    <h3 class="font-semibold">Up Monitors</h3>
-                    <p id="upMonitors" class="text-2xl font-bold text-green-500">0</p>
-                </div>
-                <div class="bg-white p-4 rounded shadow">
-                    <h3 class="font-semibold">Down Monitors</h3>
-                    <p id="downMonitors" class="text-2xl font-bold text-red-500">0</p>
-                </div>
-                <div class="bg-white p-4 rounded shadow">
-                    <h3 class="font-semibold">Avg Response Time</h3>
-                    <p id="avgResponseTime" class="text-2xl font-bold">0 ms</p>
-                </div>
-            </div>
-        </div>
+            </aside>
 
-        <div class="mt-8">
-            <h2 class="text-2xl font-bold mb-4">Response Time Chart</h2>
-            <canvas id="responseTimeChart"></canvas>
-        </div>
+            <!-- 메인 컨텐츠 -->
+            <section class="col-span-12 lg:col-span-9 space-y-6">
+                <!-- 요약 통계 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">총 모니터</h3>
+                        <p class="text-3xl font-bold text-indigo-600" id="totalMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">정상 상태</h3>
+                        <p class="text-3xl font-bold text-green-600" id="upMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">다운 상태</h3>
+                        <p class="text-3xl font-bold text-red-600" id="downMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">평균 응답 시간</h3>
+                        <p class="text-3xl font-bold text-yellow-600" id="avgResponseTime">0 ms</p>
+                    </div>
+                </div>
+
+                <!-- 차트 -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold mb-4">응답 시간 추이</h2>
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+
+                <!-- 모니터 목록 -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold">모니터 목록</h2>
+                        <div class="flex space-x-4">
+                            <select id="statusFilter" class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">모든 상태</option>
+                                <option value="up">정상</option>
+                                <option value="down">다운</option>
+                            </select>
+                            <select id="sortBy" class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="status">상태순</option>
+                                <option value="responseTime">응답시간순</option>
+                                <option value="sslExpiry">SSL 만료일순</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="monitorList" class="divide-y divide-gray-200">
+                        <!-- 모니터 항목들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <div id="detailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div class="mt-3 text-center">
-                <h3 class="text-lg leading-6 font-medium text-gray-900">Monitor Details</h3>
-                <div id="modalContent" class="mt-2 px-7 py-3"></div>
-                <div class="items-center px-4 py-3">
-                    <button id="closeModal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
-                        Close
+    <!-- 모달 -->
+    <div id="detailModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-ceㅁnter sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                모니터 상세 정보
+                            </h3>
+                            <div class="mt-2">
+                                <p id="modalContent" class="text-sm text-gray-500">
+                                    <!-- 모달 내용이 여기에 동적으로 추가됩니다 -->
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="closeModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        닫기
                     </button>
                 </div>
             </div>
