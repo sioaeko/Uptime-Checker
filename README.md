@@ -7,7 +7,7 @@ Uptime Monitor is a simple tool to monitor the availability and SSL certificate 
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/sioaeko/Uptime-monitor-vercel)
 
-Service on 🌐 https://uptime-checker.vercel.app
+Service on 🌐 https://uptimely.vercel.app
 
 ## Features
 
