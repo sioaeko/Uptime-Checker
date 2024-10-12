@@ -1,16 +1,17 @@
 {
-  "name": "uptime-monitor",
+  "name": "url-monitor",
   "version": "1.0.0",
-  "description": "A simple uptime monitoring application",
-  "main": "index.js",
   "scripts": {
-    "start": "vercel dev",
-    "deploy": "vercel deploy --prod"
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite preview"
   },
   "dependencies": {
-    "axios": "^0.21.1"
+    "@vercel/kv": "^0.2.1",
+    "axios": "^0.21.1",
+    "chart.js": "^3.7.0"
   },
   "devDependencies": {
-    "vercel": "^23.1.2"
+    "vite": "^4.3.9"
   }
 }
