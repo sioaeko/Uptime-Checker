@@ -5,12 +5,14 @@ export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { url, interval } = req.body;
     try {
+      const startTime = Date.now();
       const response = await axios.get(url);
+      const responseTime = Date.now() - startTime;
       const monitor = {
         url,
         interval,
         status: 'up',
-        responseTime: response.duration,
+        responseTime,
         lastChecked: new Date().toISOString(),
         ssl: {
           valid: true,
@@ -20,7 +22,19 @@ export default async function handler(req, res) {
       await kv.set(`monitor:${url}`, JSON.stringify(monitor));
       res.status(200).json(monitor);
     } catch (error) {
-      res.status(500).json({ error: 'Failed to add URL' });
+      const monitor = {
+        url,
+        interval,
+        status: 'down',
+        responseTime: 0,
+        lastChecked: new Date().toISOString(),
+        ssl: {
+          valid: false,
+          expiresAt: null,
+        },
+      };
+      await kv.set(`monitor:${url}`, JSON.stringify(monitor));
+      res.status(200).json(monitor);
     }
   } else {
     res.setHeader('Allow', ['POST']);
