@@ -1,5 +1,4 @@
-// @vercel/kv import 제거
-// import { kv } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded and parsed');
@@ -60,6 +59,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Data:', data);
             
             const newMonitor = { ...data, url, interval, responseTimes: [data.responseTime] };
+            await kv.set(`monitor:${url}`, JSON.stringify(newMonitor));
+            
             monitors.push(newMonitor);
             startUpdateInterval(url, interval);
             updateDisplay();
@@ -73,18 +74,23 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`Checking status for ${url}`);
         try {
             const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
             const data = await response.json();
-            const monitorIndex = monitors.findIndex(m => m.url === url);
-            if (monitorIndex !== -1) {
-                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
-                monitors[monitorIndex].responseTimes.push(data.responseTime);
-                if (monitors[monitorIndex].responseTimes.length > 10) {
-                    monitors[monitorIndex].responseTimes.shift();
+            const monitorKey = `monitor:${url}`;
+            const monitorData = await kv.get(monitorKey);
+            if (monitorData) {
+                const updatedMonitor = JSON.parse(monitorData);
+                updatedMonitor.responseTimes.push(data.responseTime);
+                if (updatedMonitor.responseTimes.length > 10) {
+                    updatedMonitor.responseTimes.shift();
                 }
-                updateDisplay();
+                Object.assign(updatedMonitor, data);
+                await kv.set(monitorKey, JSON.stringify(updatedMonitor));
+                
+                const monitorIndex = monitors.findIndex(m => m.url === url);
+                if (monitorIndex !== -1) {
+                    monitors[monitorIndex] = updatedMonitor;
+                    updateDisplay();
+                }
             }
         } catch (error) {
             console.error(`Error updating status for ${url}:`, error);
@@ -133,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 console.log('Remove response:', data);
                 if (data.success) {
+                    await kv.del(`monitor:${url}`);
                     monitors = monitors.filter(m => m.url !== url);
                     if (updateIntervals[url]) {
                         clearInterval(updateIntervals[url]);
@@ -257,19 +264,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadInitialMonitors() {
         try {
-            const response = await fetch('/api/get-monitors');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            monitors = data;
+            const keys = await kv.keys('monitor:*');
+            const monitorPromises = keys.map(key => kv.get(key));
+            const monitorData = await Promise.all(monitorPromises);
+            monitors = monitorData.map(data => JSON.parse(data));
             monitors.forEach(monitor => {
                 startUpdateInterval(monitor.url, monitor.interval);
             });
             updateDisplay();
         } catch (error) {
             console.error('Error loading initial monitors:', error);
-            alert('초기 모니터 목록을 불러오는 중 오류가 발생했습니다.');
         }
     }
 
