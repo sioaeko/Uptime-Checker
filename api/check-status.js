@@ -1,4 +1,9 @@
-const { checkUrl } = require('./add-url');
+const axios = require('axios');
+const https = require('https');
+
+async function checkUrl(url) {
+  // 위와 동일한 checkUrl 함수 사용
+}
 
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
@@ -8,12 +13,9 @@ module.exports = async (req, res) => {
     }
 
     try {
-      // 이 부분에서는 실제로 데이터베이스에서 상태를 조회해야 합니다.
-      // 여기서는 간단한 예시로 대체합니다.
       const result = await checkUrl(url);
       res.status(200).json(result);
     } catch (error) {
-      console.error('Error checking status:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   } else {
@@ -21,5 +23,3 @@ module.exports = async (req, res) => {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 };
-
-// checkUrl 함수는 add-url.js와 동일합니다.
