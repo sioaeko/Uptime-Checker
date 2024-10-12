@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayMonitor(monitor) {
         console.log('Displaying monitor:', monitor);
         const monitorItem = document.createElement('div');
-        monitorItem.className = 'monitor-card px-6 py-4 flex justify-between items-center';
+        monitorItem.className = 'px-6 py-4 flex justify-between items-center';
         monitorItem.innerHTML = `
             <div>
                 <h3 class="text-lg font-semibold">${monitor.url}</h3>
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p class="text-sm text-gray-500">체크 주기: ${monitor.interval / 1000}초</p>
             </div>
             <div class="flex items-center">
-                <span class="status-badge ${monitor.status === 'up' ? 'up' : 'down'}">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${monitor.status === 'up' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                     ${monitor.status === 'up' ? '정상' : '다운'}
                 </span>
                 <button class="ml-4 text-indigo-600 hover:text-indigo-900" onclick="showDetails('${monitor.url}')">
