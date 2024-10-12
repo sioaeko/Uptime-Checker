@@ -1,11 +1,59 @@
+import { kv } from '@vercel/kv';
 const axios = require('axios');
 const https = require('https');
 
 async function checkUrl(url) {
-  // 위와 동일한 checkUrl 함수 사용
+  console.log(`Checking URL: ${url}`);
+  try {
+    const start = Date.now();
+    const response = await axios.get(url, { 
+      timeout: 5000,
+      validateStatus: false,
+      httpsAgent: new https.Agent({ rejectUnauthorized: false })
+    });
+    const responseTime = Date.now() - start;
+
+    let sslInfo = { valid: false, expiresAt: null };
+    if (url.startsWith('https://')) {
+      try {
+        console.log('Checking SSL...');
+        const urlObj = new URL(url);
+        const sslResponse = await axios.get(`https://${urlObj.hostname}`, {
+          httpsAgent: new https.Agent({ rejectUnauthorized: false })
+        });
+        
+        const cert = sslResponse.request.res.socket.getPeerCertificate();
+        if (cert && cert.valid_to) {
+          const expirationDate = new Date(cert.valid_to);
+          sslInfo = {
+            valid: expirationDate > new Date(),
+            expiresAt: expirationDate.toISOString()
+          };
+        }
+      } catch (error) {
+        console.error('Error checking SSL:', error.message);
+      }
+    }
+
+    return {
+      status: response.status < 400 ? 'up' : 'down',
+      responseTime,
+      ssl: sslInfo,
+      lastChecked: new Date().toISOString(),
+      downHistory: []
+    };
+  } catch (error) {
+    return { 
+      status: 'down', 
+      error: error.message, 
+      lastChecked: new Date().toISOString(), 
+      downHistory: [new Date().toISOString()],
+      ssl: { valid: false, expiresAt: null }
+    };
+  }
 }
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   if (req.method === 'GET') {
     const { url } = req.query;
     if (!url) {
@@ -14,6 +62,8 @@ module.exports = async (req, res) => {
 
     try {
       const result = await checkUrl(url);
+      await kv.set(`status:${url}`, JSON.stringify(result));
+      await kv.sadd('monitored_urls', url);
       res.status(200).json(result);
     } catch (error) {
       res.status(500).json({ error: 'Internal server error' });
