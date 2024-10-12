@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Elements retrieved:', { urlForm, urlInput, checkInterval, monitorList, statusFilter, sortBy, detailModal, closeModal, totalMonitors, upMonitors, downMonitors, avgResponseTime });
 
     let monitors = [];
-    let updateIntervals = {};
     let responseTimeChart;
 
     urlForm.addEventListener('submit', handleAddMonitor);
@@ -31,23 +30,18 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         console.log('Form submitted');
         const url = urlInput.value.trim();
-        const interval = parseInt(checkInterval.value);
-        console.log('URL:', url, 'Interval:', interval);
+        console.log('URL:', url);
         if (url) {
-            await addMonitor(url, interval);
+            await addMonitor(url);
             urlInput.value = '';
             updateDisplay();
         }
     }
 
-    async function addMonitor(url, interval) {
+    async function addMonitor(url) {
         try {
-            console.log('Attempting to add monitor:', url, interval);
-            const response = await fetch('/api/add-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, interval }),
-            });
+            console.log('Attempting to add monitor:', url);
+            const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
             
             console.log('Response:', response);
             
@@ -58,8 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Data:', data);
             
-            monitors.push({ ...data, url, interval, responseTimes: [data.responseTime] });
-            startUpdateInterval(url, interval);
+            monitors.push({ ...data, url, responseTimes: [data.responseTime] });
+            startMonitoring(url);
             updateDisplay();
         } catch (error) {
             console.error('Error adding monitor:', error);
@@ -67,30 +61,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function updateMonitorStatus(url) {
-        console.log(`Checking status for ${url}`);
-        try {
-            const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
-            const data = await response.json();
-            const monitorIndex = monitors.findIndex(m => m.url === url);
-            if (monitorIndex !== -1) {
-                monitors[monitorIndex].responseTimes.push(data.responseTime);
-                if (monitors[monitorIndex].responseTimes.length > 10) {
-                    monitors[monitorIndex].responseTimes.shift();
-                }
-                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
-                updateDisplay();
-            }
-        } catch (error) {
-            console.error(`Error updating status for ${url}:`, error);
-        }
+    function startMonitoring(url) {
+        const eventSource = new EventSource(`/api/sse?url=${encodeURIComponent(url)}`);
+
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            updateMonitorStatus(url, data);
+        };
+
+        eventSource.onerror = (error) => {
+            console.error('SSE error:', error);
+            eventSource.close();
+        };
     }
 
-    function startUpdateInterval(url, interval) {
-        if (updateIntervals[url]) {
-            clearInterval(updateIntervals[url]);
+    function updateMonitorStatus(url, data) {
+        const monitorIndex = monitors.findIndex(m => m.url === url);
+        if (monitorIndex !== -1) {
+            monitors[monitorIndex].responseTimes.push(data.responseTime);
+            if (monitors[monitorIndex].responseTimes.length > 10) {
+                monitors[monitorIndex].responseTimes.shift();
+            }
+            monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
+            updateDisplay();
         }
-        updateIntervals[url] = setInterval(() => updateMonitorStatus(url), interval);
     }
 
     function displayMonitor(monitor) {
@@ -101,7 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div>
                 <h3 class="text-lg font-semibold">${monitor.url}</h3>
                 <p class="text-sm text-gray-500">응답 시간: ${monitor.responseTime}ms</p>
-                <p class="text-sm text-gray-500">체크 주기: ${monitor.interval / 1000}초</p>
             </div>
             <div class="flex items-center">
                 <span class="status-badge ${monitor.status === 'up' ? 'up' : 'down'}">
@@ -129,10 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Remove response:', data);
                 if (data.success) {
                     monitors = monitors.filter(m => m.url !== url);
-                    if (updateIntervals[url]) {
-                        clearInterval(updateIntervals[url]);
-                        delete updateIntervals[url];
-                    }
                     updateDisplay();
                 } else {
                     throw new Error(data.message || 'URL 삭제 실패');
@@ -153,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <p><strong>URL:</strong> ${monitor.url}</p>
                 <p><strong>상태:</strong> ${monitor.status === 'up' ? '정상' : '다운'}</p>
                 <p><strong>응답 시간:</strong> ${monitor.responseTime}ms</p>
-                <p><strong>체크 주기:</strong> ${monitor.interval / 1000}초</p>
                 <p><strong>마지막 체크:</strong> ${new Date(monitor.lastChecked).toLocaleString()}</p>
                 <p><strong>SSL 정보:</strong> ${monitor.ssl.valid ? '유효' : '무효'} (만료: ${new Date(monitor.ssl.expiresAt).toLocaleString()})</p>
             `;
@@ -259,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 responseTimes: [monitor.responseTime]
             }));
             monitors.forEach(monitor => {
-                startUpdateInterval(monitor.url, monitor.interval);
+                startMonitoring(monitor.url);
             });
             updateDisplay();
         } catch (error) {
