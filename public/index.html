@@ -3,23 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Uptime Monitor</title>
+    <title>고급 Uptime Monitor 대시보드</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-signal"></i> Uptime Monitor</h1>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Uptime Monitor 대시보드</h1>
         </header>
-        <main>
-            <form id="urlForm">
-                <input type="url" id="urlInput" placeholder="https://example.com" required>
-                <button type="button" id="addButton"><i class="fas fa-plus"></i> 추가</button>
-            </form>
-            <div id="monitorList"></div>
+        
+        <main class="grid grid-cols-12 gap-6">
+            <!-- 사이드바 -->
+            <aside class="col-span-12 lg:col-span-3">
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold mb-4">모니터 추가</h2>
+                    <form id="urlForm" class="space-y-4">
+                        <div>
+                            <label for="urlInput" class="block text-sm font-medium text-gray-700">URL</label>
+                            <input type="url" id="urlInput" name="url" required
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                        <div>
+                            <label for="checkInterval" class="block text-sm font-medium text-gray-700">체크 주기</label>
+                            <select id="checkInterval" name="interval"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="300000">5분</option>
+                                <option value="600000">10분</option>
+                                <option value="1800000">30분</option>
+                                <option value="3600000">1시간</option>
+                            </select>
+                        </div>
+                        <button type="submit"
+                            class="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                            모니터 추가
+                        </button>
+                    </form>
+                </div>
+            </aside>
+
+            <!-- 메인 컨텐츠 -->
+            <section class="col-span-12 lg:col-span-9 space-y-6">
+                <!-- 요약 통계 -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">총 모니터</h3>
+                        <p class="text-3xl font-bold text-indigo-600" id="totalMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">정상 상태</h3>
+                        <p class="text-3xl font-bold text-green-600" id="upMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">다운 상태</h3>
+                        <p class="text-3xl font-bold text-red-600" id="downMonitors">0</p>
+                    </div>
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">평균 응답 시간</h3>
+                        <p class="text-3xl font-bold text-yellow-600" id="avgResponseTime">0 ms</p>
+                    </div>
+                </div>
+
+                <!-- 차트 -->
+                <div class="bg-white rounded-lg shadow p-6">
+                    <h2 class="text-xl font-semibold mb-4">응답 시간 추이</h2>
+                    <canvas id="responseTimeChart"></canvas>
+                </div>
+
+                <!-- 모니터 목록 -->
+                <div class="bg-white rounded-lg shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold">모니터 목록</h2>
+                        <div class="flex space-x-4">
+                            <select id="statusFilter" class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="all">모든 상태</option>
+                                <option value="up">정상</option>
+                                <option value="down">다운</option>
+                            </select>
+                            <select id="sortBy" class="border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="status">상태순</option>
+                                <option value="responseTime">응답시간순</option>
+                                <option value="sslExpiry">SSL 만료일순</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="monitorList" class="divide-y divide-gray-200">
+                        <!-- 모니터 항목들이 여기에 동적으로 추가됩니다 -->
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
+
+    <!-- 모달 -->
+    <div id="detailModal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                모니터 상세 정보
+                            </h3>
+                            <div class="mt-2">
+                                <p id="modalContent" class="text-sm text-gray-500">
+                                    <!-- 모달 내용이 여기에 동적으로 추가됩니다 -->
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="closeModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
