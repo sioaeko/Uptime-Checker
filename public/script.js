@@ -1,3 +1,6 @@
+// @vercel/kv import 제거
+// import { kv } from '@vercel/kv';
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded and parsed');
 
