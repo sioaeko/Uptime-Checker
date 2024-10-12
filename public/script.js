@@ -1,5 +1,4 @@
-// @vercel/kv import 제거
-// import { kv } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM fully loaded and parsed');
@@ -74,15 +73,13 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
             const data = await response.json();
-            
             const monitorIndex = monitors.findIndex(m => m.url === url);
             if (monitorIndex !== -1) {
-                const updatedMonitor = { ...monitors[monitorIndex], ...data };
-                updatedMonitor.responseTimes.push(data.responseTime);
-                if (updatedMonitor.responseTimes.length > 10) {
-                    updatedMonitor.responseTimes.shift();
+                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
+                monitors[monitorIndex].responseTimes.push(data.responseTime);
+                if (monitors[monitorIndex].responseTimes.length > 10) {
+                    monitors[monitorIndex].responseTimes.shift();
                 }
-                monitors[monitorIndex] = updatedMonitor;
                 updateDisplay();
             }
         } catch (error) {
@@ -257,6 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadInitialMonitors() {
         try {
             const response = await fetch('/api/get-monitors');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             monitors = data;
             monitors.forEach(monitor => {
@@ -265,6 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateDisplay();
         } catch (error) {
             console.error('Error loading initial monitors:', error);
+            alert('초기 모니터 목록을 불러오는 중 오류가 발생했습니다.');
         }
     }
 
