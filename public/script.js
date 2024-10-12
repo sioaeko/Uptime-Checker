@@ -1,7 +1,6 @@
-import axios from 'axios';
-import Chart from 'chart.js/auto';
-
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM fully loaded and parsed');
+
     const urlForm = document.getElementById('urlForm');
     const urlInput = document.getElementById('urlInput');
     const checkInterval = document.getElementById('checkInterval');
@@ -15,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const downMonitors = document.getElementById('downMonitors');
     const avgResponseTime = document.getElementById('avgResponseTime');
 
+    console.log('Elements retrieved:', { urlForm, urlInput, checkInterval, monitorList, statusFilter, sortBy, detailModal, closeModal, totalMonitors, upMonitors, downMonitors, avgResponseTime });
+
     let monitors = [];
     let updateIntervals = {};
     let responseTimeChart;
@@ -24,10 +25,14 @@ document.addEventListener('DOMContentLoaded', function() {
     sortBy.addEventListener('change', updateDisplay);
     closeModal.addEventListener('click', () => detailModal.classList.add('hidden'));
 
+    console.log('Event listeners added');
+
     async function handleAddMonitor(e) {
         e.preventDefault();
+        console.log('Form submitted');
         const url = urlInput.value.trim();
         const interval = parseInt(checkInterval.value);
+        console.log('URL:', url, 'Interval:', interval);
         if (url) {
             await addMonitor(url, interval);
             urlInput.value = '';
@@ -37,9 +42,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function addMonitor(url, interval) {
         try {
-            const response = await axios.post('/api/add-url', { url, interval });
-            const newMonitor = response.data;
-            monitors.push(newMonitor);
+            console.log('Attempting to add monitor:', url, interval);
+            const response = await fetch('/api/add-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url, interval }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log('Data:', data);
+            
+            monitors.push(data);
             startUpdateInterval(url, interval);
             updateDisplay();
         } catch (error) {
@@ -49,12 +66,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function updateMonitorStatus(url) {
+        console.log(`Checking status for ${url}`);
         try {
-            const response = await axios.get(`/api/check-status?url=${encodeURIComponent(url)}`);
-            const updatedMonitor = response.data;
+            const response = await fetch(`/api/check-status?url=${encodeURIComponent(url)}`);
+            const data = await response.json();
             const monitorIndex = monitors.findIndex(m => m.url === url);
             if (monitorIndex !== -1) {
-                monitors[monitorIndex] = updatedMonitor;
+                monitors[monitorIndex] = data;
                 updateDisplay();
             }
         } catch (error) {
@@ -70,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function displayMonitor(monitor) {
+        console.log('Displaying monitor:', monitor);
         const monitorItem = document.createElement('div');
         monitorItem.className = 'monitor-card px-6 py-4 flex justify-between items-center';
         monitorItem.innerHTML = `
@@ -96,13 +115,22 @@ document.addEventListener('DOMContentLoaded', function() {
     window.removeMonitor = async function(url) {
         if (confirm(`정말로 "${url}" 모니터링을 삭제하시겠습니까?`)) {
             try {
-                await axios.delete(`/api/remove-url?url=${encodeURIComponent(url)}`);
-                monitors = monitors.filter(m => m.url !== url);
-                if (updateIntervals[url]) {
-                    clearInterval(updateIntervals[url]);
-                    delete updateIntervals[url];
+                console.log('Attempting to remove monitor:', url);
+                const response = await fetch(`/api/remove-url?url=${encodeURIComponent(url)}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                console.log('Remove response:', data);
+                if (data.success) {
+                    monitors = monitors.filter(m => m.url !== url);
+                    if (updateIntervals[url]) {
+                        clearInterval(updateIntervals[url]);
+                        delete updateIntervals[url];
+                    }
+                    updateDisplay();
+                } else {
+                    throw new Error(data.message || 'URL 삭제 실패');
                 }
-                updateDisplay();
             } catch (error) {
                 console.error('Error removing monitor:', error);
                 alert('URL 삭제 중 오류가 발생했습니다.');
@@ -111,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.showDetails = function(url) {
+        console.log('Showing details for:', url);
         const monitor = monitors.find(m => m.url === url);
         if (monitor) {
             const modalContent = document.getElementById('modalContent');
@@ -127,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     function updateDisplay() {
+        console.log('Updating display');
         monitorList.innerHTML = '';
         const filteredMonitors = filterMonitors(monitors);
         const sortedMonitors = sortMonitors(filteredMonitors);
@@ -160,6 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateStatistics() {
+        console.log('Updating statistics');
         totalMonitors.textContent = monitors.length;
         upMonitors.textContent = monitors.filter(m => m.status === 'up').length;
         downMonitors.textContent = monitors.filter(m => m.status === 'down').length;
@@ -168,6 +199,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateChart() {
+        console.log('Updating chart');
         const ctx = document.getElementById('responseTimeChart').getContext('2d');
         
         const labels = monitors.map(m => m.url);
@@ -214,8 +246,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function loadInitialMonitors() {
         try {
-            const response = await axios.get('/api/get-monitors');
-            monitors = response.data;
+            const response = await fetch('/api/get-monitors');
+            monitors = await response.json();
             monitors.forEach(monitor => {
                 startUpdateInterval(monitor.url, monitor.interval);
             });
