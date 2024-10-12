@@ -58,7 +58,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             console.log('Data:', data);
             
-            monitors.push(data);
+            const newMonitor = { ...data, url, interval, responseTimes: [data.responseTime] };
+            monitors.push(newMonitor);
             startUpdateInterval(url, interval);
             updateDisplay();
         } catch (error) {
@@ -75,7 +76,12 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const monitorIndex = monitors.findIndex(m => m.url === url);
             if (monitorIndex !== -1) {
-                monitors[monitorIndex] = { ...monitors[monitorIndex], ...data };
+                const updatedMonitor = { ...monitors[monitorIndex], ...data };
+                updatedMonitor.responseTimes.push(data.responseTime);
+                if (updatedMonitor.responseTimes.length > 10) {
+                    updatedMonitor.responseTimes.shift();
+                }
+                monitors[monitorIndex] = updatedMonitor;
                 updateDisplay();
             }
         } catch (error) {
