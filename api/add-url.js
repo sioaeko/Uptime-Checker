@@ -1,28 +1,7 @@
 import { kv } from '@vercel/kv';
 import axios from 'axios';
-import Cors from 'cors';
-
-// CORS 미들웨어 초기화
-const cors = Cors({
-  methods: ['POST', 'HEAD'],
-});
-
-// CORS 미들웨어를 사용하는 헬퍼 함수
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
 
 export default async function handler(req, res) {
-  // CORS 미들웨어 실행
-  await runMiddleware(req, res, cors);
-
   if (req.method === 'POST') {
     const { url, interval } = req.body;
     try {
