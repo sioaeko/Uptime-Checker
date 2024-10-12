@@ -1,44 +1,72 @@
-import { kv } from '@vercel/kv';
-import axios from 'axios';
+const axios = require('axios');
+const https = require('https');
 
-export default async function handler(req, res) {
+async function checkUrl(url) {
+  console.log(`Checking URL: ${url}`);
+  try {
+    const start = Date.now();
+    const response = await axios.get(url, { 
+      timeout: 5000,
+      validateStatus: false,
+      httpsAgent: new https.Agent({ rejectUnauthorized: false })
+    });
+    const responseTime = Date.now() - start;
+
+    let sslInfo = { valid: false, expiresAt: null };
+    if (url.startsWith('https://')) {
+      try {
+        console.log('Checking SSL...');
+        const urlObj = new URL(url);
+        const sslResponse = await axios.get(`https://${urlObj.hostname}`, {
+          httpsAgent: new https.Agent({ rejectUnauthorized: false })
+        });
+        
+        const cert = sslResponse.request.res.socket.getPeerCertificate();
+        if (cert && cert.valid_to) {
+          const expirationDate = new Date(cert.valid_to);
+          sslInfo = {
+            valid: expirationDate > new Date(),
+            expiresAt: expirationDate.toISOString()
+          };
+        }
+      } catch (error) {
+        console.error('Error checking SSL:', error.message);
+      }
+    }
+
+    return {
+      status: response.status < 400 ? 'up' : 'down',
+      responseTime,
+      ssl: sslInfo,
+      lastChecked: new Date().toISOString(),
+      downHistory: []
+    };
+  } catch (error) {
+    return { 
+      status: 'down', 
+      error: error.message, 
+      lastChecked: new Date().toISOString(), 
+      downHistory: [new Date().toISOString()],
+      ssl: { valid: false, expiresAt: null }
+    };
+  }
+}
+
+module.exports = async (req, res) => {
   if (req.method === 'POST') {
-    const { url, interval } = req.body;
+    const { url } = req.body;
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
+
     try {
-      const startTime = Date.now();
-      const response = await axios.get(url);
-      const responseTime = Date.now() - startTime;
-      const monitor = {
-        url,
-        interval,
-        status: 'up',
-        responseTime,
-        lastChecked: new Date().toISOString(),
-        ssl: {
-          valid: true,
-          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Dummy expiration date
-        },
-      };
-      await kv.set(`monitor:${url}`, JSON.stringify(monitor));
-      res.status(200).json(monitor);
+      const result = await checkUrl(url);
+      res.status(200).json(result);
     } catch (error) {
-      console.error('Error adding URL:', error);
-      const monitor = {
-        url,
-        interval,
-        status: 'down',
-        responseTime: 0,
-        lastChecked: new Date().toISOString(),
-        ssl: {
-          valid: false,
-          expiresAt: null,
-        },
-      };
-      await kv.set(`monitor:${url}`, JSON.stringify(monitor));
-      res.status(200).json(monitor);
+      res.status(500).json({ error: 'Internal server error' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
-    res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-}
+};
