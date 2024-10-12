@@ -31,26 +31,35 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function addMonitor(url, interval) {
-        try {
-            const response = await fetch('/api/add-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url, interval }),
-            });
-            
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-            
-            monitors.push({ ...data, url, interval });
-            updateDisplay();
-        } catch (error) {
-            console.error('Error adding monitor:', error);
-            alert(`URL 추가 중 오류가 발생했습니다: ${error.message}`);
+async function addMonitor(url, interval) {
+    try {
+        console.log('Sending request to add URL:', url);
+        const response = await fetch('/api/add-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, interval }),
+        });
+        
+        console.log('Response received:', response);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+        
+        const data = await response.json();
+        console.log('Parsed response data:', data);
+        
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        monitors.push({ ...data, url, interval });
+        updateDisplay();
+    } catch (error) {
+        console.error('Error adding monitor:', error);
+        alert(`URL 추가 중 오류가 발생했습니다: ${error.message}`);
     }
+}
 
     function displayMonitor(monitor) {
         const monitorItem = document.createElement('div');
