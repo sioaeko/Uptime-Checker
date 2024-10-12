@@ -1,8 +1,6 @@
 {
-  "name": "uptimely",
+  "name": "url-monitor",
   "version": "1.0.0",
-  "description": "Website uptime monitoring tool",
-  "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
