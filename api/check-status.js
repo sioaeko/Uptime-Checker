@@ -1,3 +1,5 @@
+const { checkUrl } = require('./add-url');
+
 module.exports = async (req, res) => {
   if (req.method === 'GET') {
     const { url } = req.query;
