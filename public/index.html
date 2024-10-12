@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>고급 Uptime Monitor 대시보드</title>
+    <title>Uptimely</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/js/all.min.js"></script>
@@ -12,7 +12,7 @@
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
         <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800">Uptime Monitor 대시보드</h1>
+            <h1 class="text-3xl font-bold text-gray-800">Uptimely | Check Your Site Uptime! </h1>
         </header>
         
         <main class="grid grid-cols-12 gap-6">
@@ -30,6 +30,8 @@
                             <label for="checkInterval" class="block text-sm font-medium text-gray-700">체크 주기</label>
                             <select id="checkInterval" name="interval"
                                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="30000">30초</option>
+                                <option value="60000">1분</option>
                                 <option value="300000">5분</option>
                                 <option value="600000">10분</option>
                                 <option value="1800000">30분</option>
