@@ -1,0 +1,16 @@
+{
+  "name": "uptime-monitor",
+  "version": "1.0.0",
+  "description": "A simple uptime monitoring application",
+  "main": "index.js",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel deploy --prod"
+  },
+  "dependencies": {
+    "axios": "^0.21.1"
+  },
+  "devDependencies": {
+    "vercel": "^23.1.2"
+  }
+}
