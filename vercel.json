@@ -1,8 +1,15 @@
 {
-  "crons": [
+  "version": 2,
+  "builds": [
     {
-      "path": "/api/cron-check",
-      "schedule": "*/5 * * * *"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
     }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
