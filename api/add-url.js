@@ -72,13 +72,15 @@ async function checkUrl(url) {
 
 module.exports = async (req, res) => {
   if (req.method === 'POST') {
-    const { url } = req.body;
+    const { url, interval } = req.body;
     if (!url) {
       return res.status(400).json({ error: 'URL is required' });
     }
 
     try {
+      console.log('Received request to add URL:', url);
       const result = await checkUrl(url);
+      console.log('Check URL result:', result);
       res.status(200).json(result);
     } catch (error) {
       console.error('Error checking URL:', error);
@@ -89,5 +91,3 @@ module.exports = async (req, res) => {
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 };
-
-module.exports = { checkUrl };
