@@ -1,6 +1,28 @@
 
 # Uptime Monitor
 
+<div align="center">
+  <table>
+    <tr>
+      <td align="center">
+        <h2>⚠️ ARCHIVED</h2>
+        <img src="https://github.com/user-attachments/assets/cd86bb7b-e586-4b19-a684-ca0809c577d9" width="150" alt="Project Logo">         
+        <p><strong>This project has been replaced by StatusWatch and is no longer maintained.</strong></p>
+        <p>Visit our new project for enhanced features including:</p>
+        <ul align="left">
+          <li>🎨 Modern, responsive UI with dark mode support</li>
+          <li>📊 Advanced analytics and reporting</li>
+          <li>📱 Mobile app integration</li>
+          <li>🔔 Enhanced notification system</li>
+          <li>🚀 Improved performance monitoring</li>
+        </ul>
+        <p><strong>👉 Upgrade to StatusWatch at:<br>
+        <a href="https://github.com/sioaeko/StatusWatch">github.com/sioaeko/StatusWatch</a></strong></p>
+      </td>
+    </tr>
+  </table>
+</div>
+
 ![rounded-in-photoretrica](https://github.com/user-attachments/assets/ec54f411-d904-40a8-9da7-6cc729339671)
 
 Uptime Monitor is a simple tool to monitor the availability and SSL certificate status of specified URLs. This project provides a web interface to add URLs for monitoring and an API to check their status. This version is optimized for serverless deployment on Vercel.
